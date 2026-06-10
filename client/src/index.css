@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply min-h-screen font-sans text-slate-900 antialiased;
+  }
+}
+
+@layer components {
+  .entegra-label {
+    @apply block text-sm font-medium text-slate-700 mb-1;
+  }
+
+  .entegra-input {
+    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent;
+  }
+
+  .entegra-btn-primary {
+    @apply bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .entegra-btn-secondary {
+    @apply border border-slate-300 text-slate-600 hover:bg-slate-50 font-medium py-2 px-4 rounded-lg transition-colors;
+  }
+
+  .entegra-card {
+    @apply bg-white rounded-2xl border border-slate-200 shadow-sm;
+  }
+
+  .entegra-info-box {
+    @apply bg-brand-50 border border-brand-100 rounded-xl p-5 text-brand-900;
+  }
+
+  .entegra-page-bg {
+    @apply min-h-screen bg-slate-50;
+  }
+
+  .entegra-logo {
+    @apply w-9 h-9 rounded-lg bg-brand-600 flex items-center justify-center shrink-0;
+  }
+
+  .entegra-logo-lg {
+    @apply w-14 h-14 rounded-xl bg-brand-600 flex items-center justify-center shrink-0 shadow-lg shadow-brand-600/20;
+  }
+}
