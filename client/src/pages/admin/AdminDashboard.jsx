@@ -161,6 +161,68 @@ function StatCard({ label, value, color }) {
   );
 }
 
+function McqSummary({ report }) {
+  const correct = report.filter((item) => item.is_correct).length;
+  const wrong = report.filter((item) => item.your_answer && !item.is_correct).length;
+  const unanswered = report.filter((item) => !item.your_answer).length;
+
+  return (
+    <div className="flex flex-wrap gap-2 text-xs">
+      <span className="px-2 py-1 rounded-full bg-green-100 text-green-800 font-medium">
+        {correct} correct
+      </span>
+      <span className="px-2 py-1 rounded-full bg-red-100 text-red-800 font-medium">
+        {wrong} wrong
+      </span>
+      {unanswered > 0 && (
+        <span className="px-2 py-1 rounded-full bg-amber-100 text-amber-800 font-medium">
+          {unanswered} unanswered
+        </span>
+      )}
+    </div>
+  );
+}
+
+function McqAnswerCard({ item }) {
+  const answered = Boolean(item.your_answer);
+  const isCorrect = item.is_correct;
+
+  let cardClass = 'border-2 ';
+  if (isCorrect) {
+    cardClass += 'border-green-500 bg-green-50';
+  } else if (answered) {
+    cardClass += 'border-red-500 bg-red-50';
+  } else {
+    cardClass += 'border-amber-300 bg-amber-50';
+  }
+
+  return (
+    <div className={`text-center rounded-lg px-1 py-2 text-xs ${cardClass}`}>
+      <span className="block text-[10px] text-slate-600 font-medium">Q{item.id}</span>
+
+      {isCorrect ? (
+        <span className="block font-bold text-green-700 text-sm">{item.your_answer}</span>
+      ) : answered ? (
+        <>
+          <span className="block font-bold text-red-700 text-sm line-through decoration-red-500">
+            {item.your_answer}
+          </span>
+          <span className="block text-[10px] font-semibold text-green-700 mt-1">
+            ✓ {item.correct_answer}
+          </span>
+        </>
+      ) : (
+        <>
+          <span className="block font-semibold text-slate-400 text-sm">—</span>
+          <span className="block text-[10px] font-semibold text-green-700 mt-1">
+            ✓ {item.correct_answer}
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
 function DetailPanel({ result, onCvUploaded }) {
   const [detail, setDetail] = useState(null);
   const [detailError, setDetailError] = useState('');
@@ -230,37 +292,42 @@ function DetailPanel({ result, onCvUploaded }) {
       </div>
 
       <div>
-        <h3 className="font-semibold text-slate-900 mb-3">Part 1 — MCQ Review</h3>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <h3 className="font-semibold text-slate-900">Part 1 — MCQ Answers</h3>
+          {!detailLoading && !detailError && mcqReport.length > 0 && (
+            <McqSummary report={mcqReport} />
+          )}
+        </div>
         {detailLoading && (
           <p className="text-slate-500">Loading MCQ breakdown...</p>
         )}
         {detailError && (
           <p className="text-red-600">{detailError}</p>
         )}
-        {!detailLoading && !detailError && (
-          <div className="entegra-card p-4">
-            <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-10 gap-2">
-              {mcqReport.map((item) => (
-                <div
-                  key={item.id}
-                  title={item.is_correct ? 'Correct' : `Correct answer: ${item.correct_answer}`}
-                  className={`text-center rounded-lg px-1 py-2 text-xs border ${
-                    item.is_correct
-                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                      : item.your_answer
-                        ? 'border-red-200 bg-red-50 text-red-800'
-                        : 'border-slate-100 bg-slate-50 text-slate-400'
-                  }`}
-                >
-                  <span className="block text-[10px] text-slate-500">Q{item.id}</span>
-                  <span className="font-semibold">{item.your_answer || '—'}</span>
-                  {!item.is_correct && item.your_answer && (
-                    <span className="block text-[10px] mt-0.5">→ {item.correct_answer}</span>
-                  )}
-                </div>
-              ))}
+        {!detailLoading && !detailError && mcqReport.length > 0 && (
+          <>
+            <div className="flex flex-wrap gap-4 mb-3 text-xs text-slate-600">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-sm bg-green-500 border border-green-600" />
+                Correct answer
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-sm bg-red-500 border border-red-600" />
+                Wrong answer
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-sm bg-amber-100 border border-amber-400" />
+                Not answered
+              </span>
             </div>
-          </div>
+            <div className="entegra-card p-4">
+              <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-10 gap-2">
+                {mcqReport.map((item) => (
+                  <McqAnswerCard key={item.id} item={item} />
+                ))}
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>
