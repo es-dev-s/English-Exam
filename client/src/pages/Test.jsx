@@ -48,20 +48,17 @@ export default function Test() {
     setSubmitting(true);
     setError('');
     try {
-      const result = await submitAssessment({
+      await submitAssessment({
         candidate,
         mcq_answers: mcqAnswers,
         sales_answers: salesAnswers,
       });
+      sessionStorage.removeItem('candidate');
       sessionStorage.setItem(
         'lastResult',
         JSON.stringify({
-          candidate: result.candidate,
-          mcq_score: result.mcq_score,
-          sales_score: result.sales_score,
-          total_score: result.total_score,
-          passed: result.passed,
-          ielts_pte_equivalent_band: result.ielts_pte_equivalent_band,
+          submitted: true,
+          candidateName: candidate?.name,
         })
       );
       navigate('/candidate/result');

@@ -70,8 +70,9 @@ router.post('/submit-assessment', submitAssessmentLimiter, async (req, res) => {
     });
 
     res.json({
-      ...payload,
+      message: 'Assessment submitted successfully.',
       result_id: resultId,
+      candidate: { name: payload.candidate.name },
     });
   } catch (err) {
     console.error('Submit assessment error:', err);
