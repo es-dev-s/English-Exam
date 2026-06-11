@@ -8,14 +8,18 @@ import {
   getCandidateIdByResultId,
   updateCandidateCv,
   getCandidateCv,
-  PASSING_MARK,
 } from '../services/resultStore.js';
+import { PASSING_MARK } from '../config/assessment.js';
+import { ADMIN_LOGIN_RATE_LIMIT } from '../config/rateLimit.js';
+import { gradeMcqs, buildMcqReport } from '../services/mcqGrader.js';
 import { cvUpload, deleteCvFile, getCvFilePath } from '../services/cvStorage.js';
+import { createRateLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
+const adminLoginLimiter = createRateLimiter(ADMIN_LOGIN_RATE_LIMIT);
 
 /** POST /api/admin/login */
-router.post('/login', (req, res) => {
+router.post('/login', adminLoginLimiter, (req, res) => {
   const { username, password } = req.body;
 
   if (!validateAdminCredentials(username, password)) {
@@ -40,7 +44,12 @@ router.get('/results', requireAdmin, (_req, res) => {
 router.get('/results/:id', requireAdmin, (req, res) => {
   const result = getResultById(req.params.id);
   if (!result) return res.status(404).json({ error: 'Result not found.' });
-  res.json(result);
+
+  const { breakdown } = gradeMcqs(result.mcq_answers);
+  res.json({
+    ...result,
+    mcq_report: buildMcqReport(breakdown),
+  });
 });
 
 /** POST /api/admin/results/:id/cv — upload or replace candidate CV */

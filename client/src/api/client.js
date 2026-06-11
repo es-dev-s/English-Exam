@@ -51,6 +51,15 @@ function adminHeaders() {
   return { Authorization: `Bearer ${token}` };
 }
 
+export async function fetchAdminResultDetail(resultId) {
+  const res = await fetch(`${API_BASE}/admin/results/${resultId}`, {
+    headers: adminHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to load result details');
+  return data;
+}
+
 export async function fetchAdminResults() {
   const res = await fetch(`${API_BASE}/admin/results`, {
     headers: adminHeaders(),

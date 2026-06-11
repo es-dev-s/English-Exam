@@ -1,3 +1,5 @@
+import { SALES_QUESTIONS } from '../../shared/salesQuestions.js';
+
 /**
  * Exact LLM system + user prompt template for grading Part 2 descriptive answers.
  * Each question is scored out of 2 marks:
@@ -38,38 +40,12 @@ Return ONLY valid JSON matching this schema (no markdown, no commentary outside 
 Ensure sales_score equals the sum of all question total values (max 10).`;
 
 export function buildSalesEvaluationUserPrompt(salesAnswers) {
-  const questions = [
-  {
-    id: 1,
-    prompt: 'What motivates you to pursue a career in sales?',
-    maxWords: 50,
-    answer: salesAnswers.q1 || '',
-  },
-  {
-    id: 2,
-    prompt: 'A client stops responding after two follow-ups. What do you do?',
-    maxWords: 50,
-    answer: salesAnswers.q2 || '',
-  },
-  {
-    id: 3,
-    prompt: 'Describe one personal sales strength and one weakness.',
-    maxWords: 50,
-    answer: salesAnswers.q3 || '',
-  },
-  {
-    id: 4,
-    prompt: 'Explain what "customer value" means to you.',
-    maxWords: 50,
-    answer: salesAnswers.q4 || '',
-  },
-  {
-    id: 5,
-    prompt: 'Create a weekly action plan based on leading 40 prospects (5 interested, 10 neutral, 10 declined).',
-    maxWords: 250,
-    answer: salesAnswers.q5 || '',
-  },
-];
+  const questions = SALES_QUESTIONS.map((q) => ({
+    id: q.questionId,
+    prompt: q.prompt,
+    maxWords: q.maxWords,
+    answer: salesAnswers[q.id] || '',
+  }));
 
   return `Grade the following five sales assessment responses.
 

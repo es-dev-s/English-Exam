@@ -1,7 +1,51 @@
 import { v4 as uuidv4 } from 'uuid';
 import { getDb } from '../db/database.js';
+import { PASSING_MARK } from '../config/assessment.js';
 
-const PASSING_MARK = 35;
+const RESULT_SELECT = `
+  SELECT
+    r.id AS result_id,
+    c.id AS candidate_id,
+    c.full_name,
+    c.email,
+    c.phone,
+    c.applied_position,
+    c.cv_stored_name,
+    c.cv_original_name,
+    c.test_date,
+    r.mcq_score,
+    r.sales_score,
+    r.total_score,
+    r.passed,
+    r.ielts_pte_equivalent_band,
+    r.sales_feedback,
+    r.mcq_answers,
+    r.sales_answers,
+    r.sales_question_scores,
+    r.submitted_at
+  FROM assessment_results r
+  JOIN candidates c ON c.id = r.candidate_id
+`;
+
+function parseJsonField(value, fallback) {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value);
+  } catch (err) {
+    console.error('Failed to parse stored JSON field:', err.message);
+    return fallback;
+  }
+}
+
+function mapResultRow(row) {
+  return {
+    ...row,
+    passed: Boolean(row.passed),
+    mcq_answers: parseJsonField(row.mcq_answers, {}),
+    sales_answers: parseJsonField(row.sales_answers, {}),
+    sales_question_scores: parseJsonField(row.sales_question_scores, null),
+  };
+}
 
 export function saveAssessmentResult({
   candidate,
@@ -64,48 +108,15 @@ export function saveAssessmentResult({
 export function getAllResults() {
   const db = getDb();
   return db
-    .prepare(
-      `
-    SELECT
-      r.id AS result_id,
-      c.id AS candidate_id,
-      c.full_name,
-      c.email,
-      c.phone,
-      c.applied_position,
-      c.cv_stored_name,
-      c.cv_original_name,
-      c.test_date,
-      r.mcq_score,
-      r.sales_score,
-      r.total_score,
-      r.passed,
-      r.ielts_pte_equivalent_band,
-      r.sales_feedback,
-      r.mcq_answers,
-      r.sales_answers,
-      r.sales_question_scores,
-      r.submitted_at
-    FROM assessment_results r
-    JOIN candidates c ON c.id = r.candidate_id
-    ORDER BY r.submitted_at DESC
-  `
-    )
+    .prepare(`${RESULT_SELECT} ORDER BY r.submitted_at DESC`)
     .all()
-    .map((row) => ({
-      ...row,
-      passed: Boolean(row.passed),
-      mcq_answers: JSON.parse(row.mcq_answers),
-      sales_answers: JSON.parse(row.sales_answers),
-      sales_question_scores: row.sales_question_scores
-        ? JSON.parse(row.sales_question_scores)
-        : null,
-    }));
+    .map(mapResultRow);
 }
 
 export function getResultById(resultId) {
-  const results = getAllResults();
-  return results.find((r) => r.result_id === resultId) ?? null;
+  const db = getDb();
+  const row = db.prepare(`${RESULT_SELECT} WHERE r.id = ?`).get(resultId);
+  return row ? mapResultRow(row) : null;
 }
 
 export function getCandidateIdByResultId(resultId) {

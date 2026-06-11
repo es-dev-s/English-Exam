@@ -1,12 +1,16 @@
 import { Router } from 'express';
 import { MCQ_QUESTIONS } from '../data/mcqs.seed.js';
-import { gradeMcqs, buildMcqReport } from '../services/mcqGrader.js';
+import { gradeMcqs } from '../services/mcqGrader.js';
 import { evaluateSalesAnswers } from '../services/salesEvaluator.js';
 import { calculateIeltsPteBand } from '../services/bandCalculator.js';
-import { saveAssessmentResult, PASSING_MARK } from '../services/resultStore.js';
-import { ASSESSMENT_TIME_MINUTES, TOTAL_MARKS } from '../config/assessment.js';
+import { saveAssessmentResult } from '../services/resultStore.js';
+import { ASSESSMENT_TIME_MINUTES, TOTAL_MARKS, PASSING_MARK } from '../config/assessment.js';
+import { SUBMIT_ASSESSMENT_RATE_LIMIT } from '../config/rateLimit.js';
+import { validateAssessmentSubmission } from '../validators/assessment.js';
+import { createRateLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
+const submitAssessmentLimiter = createRateLimiter(SUBMIT_ASSESSMENT_RATE_LIMIT);
 
 /** GET /api/questions — MCQs without answer key (for test UI) */
 router.get('/questions', (_req, res) => {
@@ -26,21 +30,16 @@ router.get('/questions', (_req, res) => {
 });
 
 /** POST /api/submit-assessment */
-router.post('/submit-assessment', async (req, res) => {
+router.post('/submit-assessment', submitAssessmentLimiter, async (req, res) => {
   try {
+    const validationErrors = validateAssessmentSubmission(req.body);
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ error: validationErrors[0] });
+    }
+
     const { candidate, mcq_answers, sales_answers } = req.body;
 
-    if (!candidate?.name || !candidate?.email) {
-      return res.status(400).json({ error: 'Candidate name and email are required.' });
-    }
-    if (!candidate?.applied_position?.trim()) {
-      return res.status(400).json({ error: 'Applied position is required.' });
-    }
-    if (!mcq_answers || !sales_answers) {
-      return res.status(400).json({ error: 'MCQ and sales answers are required.' });
-    }
-
-    const { mcq_score, breakdown: mcq_breakdown } = gradeMcqs(mcq_answers);
+    const { mcq_score } = gradeMcqs(mcq_answers);
     const salesEval = await evaluateSalesAnswers(sales_answers);
     const sales_score = salesEval.sales_score;
     const total_score = Math.round((mcq_score + sales_score) * 2) / 2;
@@ -49,9 +48,9 @@ router.post('/submit-assessment', async (req, res) => {
 
     const payload = {
       candidate: {
-        name: candidate.name,
-        email: candidate.email,
-        phone: candidate.phone,
+        name: candidate.name.trim(),
+        email: candidate.email.trim(),
+        phone: candidate.phone.trim(),
         applied_position: candidate.applied_position.trim(),
         test_date: candidate.test_date,
       },
@@ -73,14 +72,10 @@ router.post('/submit-assessment', async (req, res) => {
     res.json({
       ...payload,
       result_id: resultId,
-      mcq_breakdown,
-      mcq_report: buildMcqReport(mcq_breakdown),
-      sales_answers,
-      sales_question_scores: salesEval.question_scores,
     });
   } catch (err) {
     console.error('Submit assessment error:', err);
-    res.status(500).json({ error: 'Failed to process assessment.', details: err.message });
+    res.status(500).json({ error: 'Failed to process assessment.' });
   }
 });
 

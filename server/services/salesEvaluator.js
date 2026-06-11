@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { getSalesWordLimits } from '../../shared/salesQuestions.js';
 import {
   SALES_EVALUATION_SYSTEM_PROMPT,
   buildSalesEvaluationUserPrompt,
@@ -8,11 +9,38 @@ const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
+function clampMark(value) {
+  const num = Number(value);
+  if (Number.isNaN(num)) return 0;
+  return Math.max(0, Math.min(1, num));
+}
+
+function normalizeQuestionScores(questionScores) {
+  if (!Array.isArray(questionScores) || questionScores.length !== 5) {
+    throw new Error('LLM response must include exactly five question scores.');
+  }
+
+  return questionScores.map((entry, index) => {
+    const sales_mark = clampMark(entry.sales_mark);
+    const english_mark = clampMark(entry.english_mark);
+    const computedTotal = Math.min(2, Math.round((sales_mark + english_mark) * 2) / 2);
+    const total = Math.min(2, Number(entry.total) || computedTotal);
+
+    return {
+      question_id: entry.question_id ?? index + 1,
+      sales_mark,
+      english_mark,
+      total,
+      brief_feedback: String(entry.brief_feedback || ''),
+    };
+  });
+}
+
 /**
  * Fallback heuristic grading when no OpenAI API key is configured (dev/demo mode).
  */
 function fallbackGrade(salesAnswers) {
-  const limits = { q1: 50, q2: 50, q3: 50, q4: 50, q5: 250 };
+  const limits = getSalesWordLimits();
   const question_scores = [];
   let sales_score = 0;
 
@@ -81,15 +109,14 @@ export async function evaluateSalesAnswers(salesAnswers) {
   }
 
   const parsed = JSON.parse(content);
-
-  const sales_score = parsed.question_scores.reduce(
-    (sum, q) => sum + (q.total ?? 0),
-    0
-  );
+  const question_scores = normalizeQuestionScores(parsed.question_scores);
+  const sales_score = Math.round(
+    question_scores.reduce((sum, q) => sum + q.total, 0) * 2
+  ) / 2;
 
   return {
-    question_scores: parsed.question_scores,
-    sales_score: Math.round(sales_score * 2) / 2,
-    sales_feedback: parsed.sales_feedback || 'No summary feedback provided.',
+    question_scores,
+    sales_score,
+    sales_feedback: String(parsed.sales_feedback || 'No summary feedback provided.'),
   };
 }

@@ -9,7 +9,7 @@ export function gradeMcqs(answers = {}) {
   const breakdown = [];
   let mcq_score = 0;
 
-  for (let id = 1; id <= 40; id++) {
+  for (let id = 1; id <= MCQ_QUESTIONS.length; id++) {
     const expected = MCQ_ANSWER_KEY[id];
     const given = answers[String(id)]?.toUpperCase() ?? null;
     const correct = given === expected;
@@ -20,7 +20,7 @@ export function gradeMcqs(answers = {}) {
   return { mcq_score, breakdown };
 }
 
-/** Build candidate-facing MCQ report with question text and correct answers */
+/** Build admin MCQ report with question text and correct answers */
 export function buildMcqReport(breakdown) {
   return breakdown.map((item) => {
     const q = MCQ_QUESTIONS.find((m) => m.id === item.id);

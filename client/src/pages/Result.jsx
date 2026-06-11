@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { MCQ_MARKS, PASSING_MARK, SALES_MARKS, TOTAL_MARKS } from '../config/assessment';
 
 export default function Result() {
   const result = useMemo(() => {
@@ -39,16 +40,16 @@ export default function Result() {
           {result.passed ? 'Congratulations — You Passed!' : 'Assessment Complete — Did Not Pass'}
         </h1>
         <p className="mt-2 text-slate-600">
-          {result.candidate?.name} · Passing mark: 35/50
+          {result.candidate?.name} · Passing mark: {PASSING_MARK}/{TOTAL_MARKS}
         </p>
         <p className="mt-4 text-4xl font-bold text-slate-900">
-          {result.total_score}<span className="text-lg text-slate-500">/50</span>
+          {result.total_score}<span className="text-lg text-slate-500">/{TOTAL_MARKS}</span>
         </p>
       </div>
 
       <div className="mt-6 grid sm:grid-cols-2 gap-4">
-        <ScoreCard label="Part 1: MCQ Score" value={`${result.mcq_score}/40`} />
-        <ScoreCard label="Part 2: Sales Score" value={`${result.sales_score}/10`} />
+        <ScoreCard label="Part 1: MCQ Score" value={`${result.mcq_score}/${MCQ_MARKS}`} />
+        <ScoreCard label="Part 2: Sales Score" value={`${result.sales_score}/${SALES_MARKS}`} />
         <ScoreCard label="IELTS/PTE Equivalent" value={result.ielts_pte_equivalent_band} wide />
       </div>
 

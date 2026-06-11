@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useState } from 'react';
-import { fetchAdminResults } from '../../api/client';
+import { fetchAdminResultDetail, fetchAdminResults } from '../../api/client';
+import { MCQ_MARKS, SALES_MARKS, TOTAL_MARKS } from '../../config/assessment';
 import { SALES_QUESTIONS } from '../../components/SalesQuestions';
 import CvUploadSection from '../../components/CvUploadSection';
 
@@ -95,9 +96,9 @@ export default function AdminDashboard() {
                       <td className="px-4 py-3 text-slate-600">{r.applied_position || '—'}</td>
                       <td className="px-4 py-3 text-slate-600">{r.email}</td>
                       <td className="px-4 py-3 text-slate-600">{r.test_date}</td>
-                      <td className="px-4 py-3">{r.mcq_score}/40</td>
-                      <td className="px-4 py-3">{r.sales_score}/10</td>
-                      <td className="px-4 py-3 font-semibold text-slate-900">{r.total_score}/50</td>
+                      <td className="px-4 py-3">{r.mcq_score}/{MCQ_MARKS}</td>
+                      <td className="px-4 py-3">{r.sales_score}/{SALES_MARKS}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-900">{r.total_score}/{TOTAL_MARKS}</td>
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -161,8 +162,21 @@ function StatCard({ label, value, color }) {
 }
 
 function DetailPanel({ result, onCvUploaded }) {
+  const [detail, setDetail] = useState(null);
+  const [detailError, setDetailError] = useState('');
+  const [detailLoading, setDetailLoading] = useState(true);
+
+  useEffect(() => {
+    setDetailLoading(true);
+    setDetailError('');
+    fetchAdminResultDetail(result.result_id)
+      .then(setDetail)
+      .catch((err) => setDetailError(err.message))
+      .finally(() => setDetailLoading(false));
+  }, [result.result_id]);
+
   const salesAnswers = result.sales_answers || {};
-  const mcqAnswers = result.mcq_answers || {};
+  const mcqReport = detail?.mcq_report || [];
 
   return (
     <div className="space-y-6 text-sm">
@@ -174,9 +188,9 @@ function DetailPanel({ result, onCvUploaded }) {
           <ul className="space-y-1 text-slate-600">
             <li>Position: <strong className="text-slate-900">{result.applied_position || '—'}</strong></li>
             <li>Phone: <strong className="text-slate-900">{result.phone || '—'}</strong></li>
-            <li>MCQ Score: <strong className="text-slate-900">{result.mcq_score}/40</strong></li>
-            <li>Sales Score: <strong className="text-slate-900">{result.sales_score}/10</strong></li>
-            <li>Total: <strong className="text-slate-900">{result.total_score}/50</strong></li>
+            <li>MCQ Score: <strong className="text-slate-900">{result.mcq_score}/{MCQ_MARKS}</strong></li>
+            <li>Sales Score: <strong className="text-slate-900">{result.sales_score}/{SALES_MARKS}</strong></li>
+            <li>Total: <strong className="text-slate-900">{result.total_score}/{TOTAL_MARKS}</strong></li>
             <li>IELTS/PTE Band: <strong className="text-slate-900">{result.ielts_pte_equivalent_band}</strong></li>
             <li>Submitted: {new Date(result.submitted_at).toLocaleString()}</li>
           </ul>
@@ -216,25 +230,38 @@ function DetailPanel({ result, onCvUploaded }) {
       </div>
 
       <div>
-        <h3 className="font-semibold text-slate-900 mb-3">Part 1 — MCQ Answers</h3>
-        <div className="entegra-card p-4">
-          <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-10 gap-2">
-            {Array.from({ length: 40 }, (_, i) => i + 1).map((id) => {
-              const given = mcqAnswers[String(id)];
-              return (
+        <h3 className="font-semibold text-slate-900 mb-3">Part 1 — MCQ Review</h3>
+        {detailLoading && (
+          <p className="text-slate-500">Loading MCQ breakdown...</p>
+        )}
+        {detailError && (
+          <p className="text-red-600">{detailError}</p>
+        )}
+        {!detailLoading && !detailError && (
+          <div className="entegra-card p-4">
+            <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-10 gap-2">
+              {mcqReport.map((item) => (
                 <div
-                  key={id}
+                  key={item.id}
+                  title={item.is_correct ? 'Correct' : `Correct answer: ${item.correct_answer}`}
                   className={`text-center rounded-lg px-1 py-2 text-xs border ${
-                    given ? 'border-slate-200 bg-white text-slate-800' : 'border-slate-100 bg-slate-50 text-slate-400'
+                    item.is_correct
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                      : item.your_answer
+                        ? 'border-red-200 bg-red-50 text-red-800'
+                        : 'border-slate-100 bg-slate-50 text-slate-400'
                   }`}
                 >
-                  <span className="block text-[10px] text-slate-500">Q{id}</span>
-                  <span className="font-semibold">{given || '—'}</span>
+                  <span className="block text-[10px] text-slate-500">Q{item.id}</span>
+                  <span className="font-semibold">{item.your_answer || '—'}</span>
+                  {!item.is_correct && item.your_answer && (
+                    <span className="block text-[10px] mt-0.5">→ {item.correct_answer}</span>
+                  )}
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

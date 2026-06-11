@@ -53,7 +53,10 @@ Default admin credentials: `admin` / `changeme` (change in `server/.env` before 
 | POST | `/api/submit-assessment` | Grade & store submission |
 | POST | `/api/admin/login` | Admin login (returns JWT) |
 | GET | `/api/admin/results` | All results (auth required) |
-| GET | `/api/admin/results/:id` | Single result detail (auth required) |
+| GET | `/api/admin/results/:id` | Single result with MCQ breakdown (auth required) |
+| GET | `/api/admin/me` | Verify admin session (auth required) |
+| POST | `/api/admin/results/:id/cv` | Upload candidate CV (auth required) |
+| GET | `/api/admin/results/:id/cv` | Download candidate CV (auth required) |
 
 ### Submit Response Schema
 
@@ -72,6 +75,7 @@ Default admin credentials: `admin` / `changeme` (change in `server/.env` before 
 ## Project Structure
 
 ```
+├── shared/                 # Shared constants (assessment, sales questions, positions)
 ├── client/                 # React frontend
 │   └── src/
 │       ├── pages/          # Onboarding, Test, Result, Admin
@@ -92,8 +96,29 @@ Default admin credentials: `admin` / `changeme` (change in `server/.env` before 
 
 ```bash
 npm run build          # Builds client to client/dist
-npm start              # Serves API + static client on PORT (default 3001)
+npm start              # Serves API + static client on PORT (default 3010)
 ```
+
+Set `NODE_ENV=production` and configure `JWT_SECRET`, `ADMIN_USERNAME`, and `ADMIN_PASSWORD` before deploying. The server refuses to start in production without these values.
+
+## Tests
+
+```bash
+npm test               # Runs server unit tests (Node built-in test runner)
+```
+
+Coverage includes assessment validation, MCQ grading, band mapping, and rate limiting middleware.
+
+## Rate Limiting
+
+Per-IP limits protect public write endpoints:
+
+| Endpoint | Default limit |
+|----------|----------------|
+| `POST /api/submit-assessment` | 10 requests / 15 minutes |
+| `POST /api/admin/login` | 10 requests / 15 minutes |
+
+Tune via `RATE_LIMIT_SUBMIT_*` and `RATE_LIMIT_LOGIN_*` in `server/.env`. Set `TRUST_PROXY=true` when deployed behind a reverse proxy so client IPs are read correctly.
 
 ## LLM Grading
 
@@ -102,4 +127,3 @@ Without `OPENAI_API_KEY`, Part 2 uses heuristic demo grading. With a key set, th
 ## License
 
 Private — internal hiring assessment use.
-# English-Exam

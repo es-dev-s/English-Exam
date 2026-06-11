@@ -6,6 +6,9 @@ import { fileURLToPath } from 'url';
 import assessmentRoutes from './routes/assessment.js';
 import adminRoutes from './routes/admin.js';
 import { getDb } from './db/database.js';
+import { validateProductionEnv } from './config/env.js';
+
+validateProductionEnv();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -13,6 +16,10 @@ const DEFAULT_PORT = Number(process.env.PORT) || 3010;
 const MAX_PORT_ATTEMPTS = 10;
 
 getDb();
+
+if (process.env.TRUST_PROXY === 'true') {
+  app.set('trust proxy', 1);
+}
 
 app.use(
   cors({

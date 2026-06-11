@@ -5,9 +5,7 @@ import Timer from '../components/Timer';
 import McqPage from '../components/McqPage';
 import SalesQuestions, { validateSalesAnswers } from '../components/SalesQuestions';
 import { useCountdown } from '../hooks/useCountdown';
-import { ASSESSMENT_TIME_MINUTES } from '../config/assessment';
-
-const MCQ_PER_PAGE = 10;
+import { ASSESSMENT_TIME_MINUTES, MCQ_MARKS } from '../config/assessment';
 
 const MCQ_PAGES = [
   { label: 'Q1–10', start: 1, end: 10 },
@@ -130,7 +128,7 @@ export default function Test() {
             <p className="font-semibold text-slate-900">{candidate?.name}</p>
             <p className="text-xs text-slate-500">
               {candidate?.applied_position && <span>{candidate.applied_position} · </span>}
-              MCQs answered: {mcqAnswered}/40
+              MCQs answered: {mcqAnswered}/{questions.length || MCQ_MARKS}
             </p>
           </div>
           <Timer secondsLeft={secondsLeft} />
@@ -160,7 +158,7 @@ export default function Test() {
               : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
           }`}
         >
-          Part 1: English (40 marks)
+          Part 1: English ({MCQ_MARKS} marks)
         </button>
         <button
           type="button"
@@ -240,11 +238,6 @@ export default function Test() {
             answers={salesAnswers}
             onChange={(id, value) => setSalesAnswers((a) => ({ ...a, [id]: value }))}
           />
-          {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {error}
-            </div>
-          )}
           <div className="mt-6 flex justify-between items-center">
             <button
               type="button"

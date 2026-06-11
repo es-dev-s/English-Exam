@@ -1,15 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ASSESSMENT_TIME_MINUTES } from '../config/assessment';
+import { ASSESSMENT_TIME_MINUTES, PASSING_MARK, TOTAL_MARKS } from '../config/assessment';
+import { POSITION_OPTIONS } from '../config/positions';
 import { APP_NAME } from '../config/branding';
-
-const POSITION_OPTIONS = [
-  'Sales Executive',
-  'Sales Support Executive',
-  'Quality Analyst',
-  'Chat Analyst',
-  'HR',
-];
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -71,7 +64,7 @@ export default function Onboarding() {
           Assessment Instructions
         </h2>
         <ul className="mt-3 space-y-2 text-sm text-brand-900/90">
-          <li><strong>Total marks:</strong> 50 (Passing mark: 35)</li>
+          <li><strong>Total marks:</strong> {TOTAL_MARKS} (Passing mark: {PASSING_MARK})</li>
           <li><strong>Part 1 — English Proficiency:</strong> 40 MCQs × 1 mark (IELTS/PTE-style grammar, vocabulary & collocations)</li>
           <li><strong>Part 2 — Sales Acumen:</strong> 5 descriptive questions × 2 marks (AI-evaluated)</li>
           <li><strong>Time limit:</strong> {ASSESSMENT_TIME_MINUTES} minutes — the test auto-submits when the timer reaches 0:00</li>
@@ -155,7 +148,7 @@ export default function Onboarding() {
             className="mt-1 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
           />
           <span className="text-sm text-slate-600">
-            I understand the assessment is 50 marks with a 35-mark pass threshold, lasts {ASSESSMENT_TIME_MINUTES} minutes,
+            I understand the assessment is {TOTAL_MARKS} marks with a {PASSING_MARK}-mark pass threshold, lasts {ASSESSMENT_TIME_MINUTES} minutes,
             and will auto-submit when time expires.
           </span>
         </label>

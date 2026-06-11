@@ -6,6 +6,10 @@ export function useCountdown(initialSeconds, onExpire) {
   onExpireRef.current = onExpire;
 
   useEffect(() => {
+    setSecondsLeft(initialSeconds);
+  }, [initialSeconds]);
+
+  useEffect(() => {
     if (secondsLeft <= 0) {
       onExpireRef.current?.();
       return undefined;

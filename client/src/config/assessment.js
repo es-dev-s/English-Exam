@@ -1,3 +1,7 @@
-export const ASSESSMENT_TIME_MINUTES = 45;
-export const TOTAL_MARKS = 50;
-export const PASSING_MARK = 35;
+export {
+  ASSESSMENT_TIME_MINUTES,
+  TOTAL_MARKS,
+  PASSING_MARK,
+  MCQ_MARKS,
+  SALES_MARKS,
+} from '@shared/assessment.js';
