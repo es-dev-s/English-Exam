@@ -1,0 +1,51 @@
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: english-exam-test-db
+    restart: unless-stopped
+    env_file: .env.docker          # POSTGRES_PASSWORD
+    environment:
+      POSTGRES_USER: exam
+      POSTGRES_DB: exam
+    volumes:
+      - pgdata:/var/lib/postgresql   # PG 18+ image keeps data in a versioned subdir under here
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U exam -d exam"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    # not published to the host: only the api container can reach it
+
+  api:
+    build:
+      context: .
+      target: api
+    image: english-exam-api:test
+    container_name: english-exam-test-api
+    restart: unless-stopped
+    env_file: .env.docker          # DATABASE_URL, admin creds, JWT_SECRET, OPENAI_*, rate limits
+    environment:
+      DATABASE_SSL: "false"
+      TRUST_PROXY: "true"          # requests arrive via the nginx web container
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - api-data:/data
+
+  web:
+    build:
+      context: .
+      target: web
+    image: english-exam-web:test
+    container_name: english-exam-test-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${HOST_PORT:-3020}:80"
+
+volumes:
+  pgdata:
+  api-data:
