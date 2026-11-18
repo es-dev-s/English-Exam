@@ -1,6 +1,7 @@
 import { getAdminToken } from '../utils/authStorage';
+import { getApiBase } from '../config/api';
 
-const API_BASE = '/api';
+const API_BASE = getApiBase();
 
 export async function fetchQuestions() {
   const res = await fetch(`${API_BASE}/questions`);

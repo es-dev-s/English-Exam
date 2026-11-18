@@ -25,7 +25,7 @@ export default function CandidateLayout() {
         <Outlet />
       </main>
       <PortalFooter>
-        {TOTAL_MARKS} Marks · Pass: {PASSING_MARK} Marks · {ASSESSMENT_TIME_MINUTES} Minutes
+        {TOTAL_MARKS} Marks · Pass: {PASSING_MARK} · {ASSESSMENT_TIME_MINUTES} min · MCQ + Listening + Writing + Typing
       </PortalFooter>
     </div>
   );

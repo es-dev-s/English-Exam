@@ -1,3 +1,7 @@
+function words(n, prefix = 'word') {
+  return Array.from({ length: n }, (_, i) => `${prefix}${i}`).join(' ');
+}
+
 export function createMockReqResNext({ ip = '127.0.0.1' } = {}) {
   const headers = {};
   const res = {
@@ -34,6 +38,7 @@ export function createMockReqResNext({ ip = '127.0.0.1' } = {}) {
 
 export function validSubmissionPayload(overrides = {}) {
   return {
+    session_id: 'test-session-id',
     candidate: {
       name: 'Jane Doe',
       email: 'jane@example.com',
@@ -42,12 +47,17 @@ export function validSubmissionPayload(overrides = {}) {
       test_date: '2026-06-11',
     },
     mcq_answers: { '1': 'A', '2': 'B' },
+    listening_answers: { '1': 'C', '2': 'B' },
     sales_answers: {
-      q1: 'Motivated by helping customers succeed.',
-      q2: 'Follow up with value and ask for feedback.',
-      q3: 'Strength: listening. Weakness: patience.',
-      q4: 'Customer value means solving real problems.',
-      q5: 'Weekly plan for 40 prospects with follow-ups.',
+      q1: words(110, 'motivation'),
+      q2: words(110, 'followup'),
+      q3: words(110, 'strength'),
+      q4: words(110, 'value'),
+      q5: words(120, 'plan'),
+    },
+    typing: {
+      typed_text: 'sample typing text',
+      elapsed_seconds: 60,
     },
     ...overrides,
   };

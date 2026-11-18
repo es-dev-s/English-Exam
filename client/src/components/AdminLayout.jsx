@@ -22,20 +22,20 @@ export default function AdminLayout() {
   return (
     <div className="entegra-page-bg flex flex-col">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="entegra-shell py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="entegra-logo">
               <span className="text-white font-bold text-sm">E</span>
             </div>
-            <div>
-              <p className="font-semibold text-slate-900 leading-tight">{APP_NAME}</p>
+            <div className="min-w-0">
+              <p className="font-semibold text-slate-900 leading-tight truncate">{APP_NAME}</p>
               <p className="text-xs text-slate-500">
                 Admin · Results & Management
                 {username && <span className="hidden sm:inline"> · {username}</span>}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <button
               type="button"
               onClick={handleSwitchPortal}
@@ -53,7 +53,7 @@ export default function AdminLayout() {
           </div>
         </div>
       </header>
-      <main className="flex-1">
+      <main className="flex-1 w-full">
         <Outlet />
       </main>
       <PortalFooter>Admin access only · Candidate submissions appear after exam completion</PortalFooter>

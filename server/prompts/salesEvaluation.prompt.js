@@ -1,56 +1,47 @@
-import { SALES_QUESTIONS } from '../../shared/salesQuestions.js';
+import { SALES_QUESTION_BANK } from '../shared/salesQuestions.js';
+import { WRITING_MARKS_PER_QUESTION, SALES_MARKS } from '../config/assessment.js';
 
 /**
- * Exact LLM system + user prompt template for grading Part 2 descriptive answers.
- * Each question is scored out of 2 marks:
- *   - 1 mark: Sales strategy alignment
- *   - 1 mark: IELTS/PTE English (grammar, coherence, lexical resource)
+ * LLM grading for writing: each question max WRITING_MARKS_PER_QUESTION (default 3).
  */
 
 export const SALES_EVALUATION_SYSTEM_PROMPT = `You are a senior sales hiring assessor and certified IELTS/PTE Academic examiner.
 
-Your task is to grade five candidate written responses for a Sales Acumen assessment. Each response is worth exactly 2 marks, split as follows:
-- 1 mark for SALES STRATEGY ALIGNMENT: relevance, practicality, customer-centric thinking, pipeline discipline, and professional sales judgment.
-- 1 mark for ENGLISH PROFICIENCY (IELTS/PTE Academic standards): grammatical accuracy, structural coherence, appropriate register, and lexical resource (vocabulary range and precision).
+Grade candidate written responses for a Sales Writing assessment. Each response is worth exactly ${WRITING_MARKS_PER_QUESTION} marks, split as:
+- ${WRITING_MARKS_PER_QUESTION / 2} mark(s) for SALES STRATEGY ALIGNMENT
+- ${WRITING_MARKS_PER_QUESTION / 2} mark(s) for ENGLISH PROFICIENCY (IELTS/PTE Academic)
 
-Scoring rules per question (0, 0.5, 1, 1.5, or 2 only — no other decimals):
-- 2.0: Excellent sales insight AND clear, accurate, well-structured English within word limits.
-- 1.5: Strong in one dimension, minor gaps in the other.
-- 1.0: Adequate but basic; noticeable weaknesses in sales logic OR language.
-- 0.5: Weak attempt; significant issues in both areas OR severely off-topic.
-- 0.0: Blank, irrelevant, incoherent, or far exceeds word limit.
+Allowed half-point increments only (e.g. 0, 0.5, 1, 1.5, 2, 2.5, 3).
 
-Word-limit violations:
-- Q1–Q4 (max 50 words): deduct 0.5 from the English mark if over limit; cap total at 1.0 if more than 70 words.
-- Q5 (max 250 words): deduct 0.5 from English mark if over limit; cap total at 1.0 if more than 320 words.
+Word-count rules:
+- Each answer should be at least 100 words. Below 100: English mark max 0.5 and total capped at 1.5.
+- Soft maximum 300 words. Over max: deduct from English mark; if >20% over, cap total at 1.5.
 
-Return ONLY valid JSON matching this schema (no markdown, no commentary outside JSON):
+Return ONLY valid JSON:
 {
   "question_scores": [
-    { "question_id": 1, "sales_mark": number, "english_mark": number, "total": number, "brief_feedback": "string" },
-    { "question_id": 2, "sales_mark": number, "english_mark": number, "total": number, "brief_feedback": "string" },
-    { "question_id": 3, "sales_mark": number, "english_mark": number, "total": number, "brief_feedback": "string" },
-    { "question_id": 4, "sales_mark": number, "english_mark": number, "total": number, "brief_feedback": "string" },
-    { "question_id": 5, "sales_mark": number, "english_mark": number, "total": number, "brief_feedback": "string" }
+    { "question_id": 1, "bank_id": "wq1", "sales_mark": number, "english_mark": number, "total": number, "brief_feedback": "string" }
   ],
   "sales_score": number,
-  "sales_feedback": "string (2-4 sentences summarising strengths, gaps, and hiring recommendation for sales role)"
+  "sales_feedback": "string (2-4 sentences)"
 }
 
-Ensure sales_score equals the sum of all question total values (max 10).`;
+Ensure sales_score equals the sum of all question totals (max ${SALES_MARKS}).`;
 
-export function buildSalesEvaluationUserPrompt(salesAnswers) {
-  const questions = SALES_QUESTIONS.map((q) => ({
-    id: q.questionId,
+export function buildSalesEvaluationUserPrompt(salesAnswers, writingQuestions) {
+  const questions = (writingQuestions || SALES_QUESTION_BANK.slice(0, 5)).map((q, index) => ({
+    id: index + 1,
+    bank_id: q.id,
     prompt: q.prompt,
+    minWords: q.minWords,
     maxWords: q.maxWords,
-    answer: salesAnswers[q.id] || '',
+    answer: salesAnswers[q.slot] || salesAnswers[q.id] || '',
   }));
 
-  return `Grade the following five sales assessment responses.
+  return `Grade the following ${questions.length} sales writing assessment responses.
 
 ${questions.map((q) => `
---- Question ${q.id} (max ${q.maxWords} words) ---
+--- Question ${q.id} [${q.bank_id}] (min ${q.minWords}, max ${q.maxWords} words) ---
 Prompt: ${q.prompt}
 Candidate answer (${countWords(q.answer)} words):
 ${q.answer || '[No answer provided]'}
@@ -60,5 +51,5 @@ Apply the rubric strictly. Return JSON only.`;
 }
 
 function countWords(text) {
-  return text.trim().split(/\s+/).filter(Boolean).length;
+  return String(text).trim().split(/\s+/).filter(Boolean).length;
 }

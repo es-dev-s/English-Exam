@@ -1,10 +1,14 @@
 const DIFFICULTY_STYLES = {
+  easy: 'bg-emerald-100 text-emerald-700',
+  medium: 'bg-amber-100 text-amber-700',
+  hard: 'bg-rose-100 text-rose-700',
+  // legacy seeds (if any older results view them)
   simple: 'bg-emerald-100 text-emerald-700',
   intermediate: 'bg-amber-100 text-amber-700',
   advanced: 'bg-rose-100 text-rose-700',
 };
 
-export default function McqPage({ questions, answers, onAnswer }) {
+export default function McqPage({ questions, answers, onAnswer, idPrefix = 'mcq' }) {
   return (
     <div className="space-y-6">
       {questions.map((q) => (
@@ -13,7 +17,7 @@ export default function McqPage({ questions, answers, onAnswer }) {
             <legend className="font-medium text-slate-900">
               <span className="text-brand-600">Q{q.id}.</span> {q.question}
             </legend>
-            <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full capitalize ${DIFFICULTY_STYLES[q.difficulty]}`}>
+            <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full capitalize ${DIFFICULTY_STYLES[q.difficulty] || 'bg-slate-100 text-slate-600'}`}>
               {q.difficulty}
             </span>
           </div>
@@ -31,7 +35,7 @@ export default function McqPage({ questions, answers, onAnswer }) {
                 >
                   <input
                     type="radio"
-                    name={`mcq-${q.id}`}
+                    name={`${idPrefix}-${q.id}`}
                     value={key}
                     checked={selected}
                     onChange={() => onAnswer(q.id, key)}

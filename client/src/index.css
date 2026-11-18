@@ -37,6 +37,10 @@
     @apply min-h-screen bg-slate-50;
   }
 
+  .entegra-shell {
+    @apply w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
   .entegra-logo {
     @apply w-9 h-9 rounded-lg bg-brand-600 flex items-center justify-center shrink-0;
   }

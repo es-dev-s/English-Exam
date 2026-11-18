@@ -5,3 +5,7 @@ export function countWords(text) {
 export function isWithinWordLimit(text, maxWords) {
   return countWords(text) <= maxWords;
 }
+
+export function meetsMinWords(text, minWords) {
+  return countWords(text) >= minWords;
+}

@@ -65,10 +65,11 @@ export default function Onboarding() {
         </h2>
         <ul className="mt-3 space-y-2 text-sm text-brand-900/90">
           <li><strong>Total marks:</strong> {TOTAL_MARKS} (Passing mark: {PASSING_MARK})</li>
-          <li><strong>Part 1 — English Proficiency:</strong> 40 MCQs × 1 mark (IELTS/PTE-style grammar, vocabulary & collocations)</li>
-          <li><strong>Part 2 — Sales Acumen:</strong> 5 descriptive questions × 2 marks (AI-evaluated)</li>
-          <li><strong>Time limit:</strong> {ASSESSMENT_TIME_MINUTES} minutes — the test auto-submits when the timer reaches 0:00</li>
-          <li><strong>Word limits:</strong> Part 2 answers must stay within stated limits or submission will be blocked</li>
+          <li><strong>Part 1 — MCQ:</strong> 20 randomly selected questions from a 100-question bank (20 marks)</li>
+          <li><strong>Part 2 — Listening:</strong> Random dialogue audio (male/female voices) + 10 MCQs (10 marks). Audio may be played only twice; script is hidden</li>
+          <li><strong>Part 3 — Writing:</strong> 5 random sales questions × 3 marks (recommended 100+ words; blank allowed)</li>
+          <li><strong>Part 4 — Typing:</strong> ~300-word passage — target 25 WPM with 90% accuracy (5 marks)</li>
+          <li><strong>Time limit:</strong> {ASSESSMENT_TIME_MINUTES} minutes — auto-submits at 0:00</li>
         </ul>
       </div>
 

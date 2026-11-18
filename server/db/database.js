@@ -1,41 +1,67 @@
-import Database from 'better-sqlite3';
+import pg from 'pg';
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
+const { Pool } = pg;
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DB_PATH = process.env.DATABASE_PATH || join(__dirname, 'exam_portal.db');
 
-let db;
+let pool;
 
-export function getDb() {
-  if (!db) {
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf-8');
-    db.exec(schema);
-    runMigrations(db);
+function requireDatabaseUrl() {
+  const url = process.env.DATABASE_URL?.trim();
+  if (!url) {
+    throw new Error(
+      'DATABASE_URL is required. Set it in server/.env, e.g.\n' +
+        'DATABASE_URL=postgresql://user:password@host:5432/dbname'
+    );
   }
-  return db;
+  return url;
 }
 
-function runMigrations(db) {
-  const columns = db.prepare('PRAGMA table_info(candidates)').all();
-  if (!columns.some((col) => col.name === 'applied_position')) {
-    db.exec(`ALTER TABLE candidates ADD COLUMN applied_position TEXT NOT NULL DEFAULT ''`);
+export function getPool() {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: requireDatabaseUrl(),
+      // Internal hosts often have no TLS; enable with DATABASE_SSL=true if needed
+      ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+    });
+    pool.on('error', (err) => {
+      console.error('Unexpected PostgreSQL pool error:', err.message);
+    });
   }
-  if (!columns.some((col) => col.name === 'cv_stored_name')) {
-    db.exec(`ALTER TABLE candidates ADD COLUMN cv_stored_name TEXT`);
-  }
-  if (!columns.some((col) => col.name === 'cv_original_name')) {
-    db.exec(`ALTER TABLE candidates ADD COLUMN cv_original_name TEXT`);
+  return pool;
+}
+
+export async function query(text, params = []) {
+  return getPool().query(text, params);
+}
+
+export async function withTransaction(fn) {
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
   }
 }
 
-export function closeDb() {
-  if (db) {
-    db.close();
-    db = null;
+/** Apply schema and ensure the pool can connect. Call once at startup. */
+export async function initDb() {
+  const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf-8');
+  await query(schema);
+  return getPool();
+}
+
+export async function closeDb() {
+  if (pool) {
+    await pool.end();
+    pool = null;
   }
 }

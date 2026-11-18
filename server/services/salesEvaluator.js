@@ -1,33 +1,45 @@
 import OpenAI from 'openai';
-import { getSalesWordLimits } from '../../shared/salesQuestions.js';
+import { SALES_QUESTION_BANK, getSalesWordLimits } from '../shared/salesQuestions.js';
 import {
   SALES_EVALUATION_SYSTEM_PROMPT,
   buildSalesEvaluationUserPrompt,
 } from '../prompts/salesEvaluation.prompt.js';
+import { countWords } from '../utils/wordCount.js';
+import { WRITING_MARKS_PER_QUESTION } from '../config/assessment.js';
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
-function clampMark(value) {
+function clampHalf(value, max) {
   const num = Number(value);
   if (Number.isNaN(num)) return 0;
-  return Math.max(0, Math.min(1, num));
+  const clamped = Math.max(0, Math.min(max, num));
+  return Math.round(clamped * 2) / 2;
 }
 
-function normalizeQuestionScores(questionScores) {
-  if (!Array.isArray(questionScores) || questionScores.length !== 5) {
-    throw new Error('LLM response must include exactly five question scores.');
+function normalizeQuestionScores(questionScores, expectedCount) {
+  if (!Array.isArray(questionScores) || questionScores.length !== expectedCount) {
+    throw new Error(`LLM response must include exactly ${expectedCount} question scores.`);
   }
 
+  const halfMax = WRITING_MARKS_PER_QUESTION / 2;
+
   return questionScores.map((entry, index) => {
-    const sales_mark = clampMark(entry.sales_mark);
-    const english_mark = clampMark(entry.english_mark);
-    const computedTotal = Math.min(2, Math.round((sales_mark + english_mark) * 2) / 2);
-    const total = Math.min(2, Number(entry.total) || computedTotal);
+    const sales_mark = clampHalf(entry.sales_mark, halfMax);
+    const english_mark = clampHalf(entry.english_mark, halfMax);
+    const computedTotal = Math.min(
+      WRITING_MARKS_PER_QUESTION,
+      Math.round((sales_mark + english_mark) * 2) / 2
+    );
+    const total = Math.min(
+      WRITING_MARKS_PER_QUESTION,
+      Number(entry.total) || computedTotal
+    );
 
     return {
       question_id: entry.question_id ?? index + 1,
+      bank_id: entry.bank_id || null,
       sales_mark,
       english_mark,
       total,
@@ -36,36 +48,34 @@ function normalizeQuestionScores(questionScores) {
   });
 }
 
-/**
- * Fallback heuristic grading when no OpenAI API key is configured (dev/demo mode).
- */
-function fallbackGrade(salesAnswers) {
+function fallbackGrade(salesAnswers, writingQuestions) {
   const limits = getSalesWordLimits();
   const question_scores = [];
   let sales_score = 0;
+  const halfMax = WRITING_MARKS_PER_QUESTION / 2;
 
-  for (let i = 1; i <= 5; i++) {
-    const key = `q${i}`;
-    const answer = (salesAnswers[key] || '').trim();
-    const words = answer.split(/\s+/).filter(Boolean).length;
-    const maxWords = limits[key];
+  writingQuestions.forEach((q, index) => {
+    const answer = (salesAnswers[q.slot] || salesAnswers[q.id] || '').trim();
+    const words = countWords(answer);
+    const { minWords, maxWords } = limits[q.id] || { minWords: 100, maxWords: 300 };
 
     let sales_mark = 0;
     let english_mark = 0;
 
     if (answer.length > 0) {
-      sales_mark = words >= 10 || (i === 5 && words >= 40) ? 0.75 : 0.5;
-      english_mark = words <= maxWords ? 0.75 : 0.25;
-      if (words > maxWords * 1.4) {
-        sales_mark = Math.min(sales_mark, 0.5);
-        english_mark = 0.25;
+      sales_mark = words >= minWords ? halfMax * 0.75 : halfMax * 0.4;
+      english_mark = words >= minWords && words <= maxWords ? halfMax * 0.75 : halfMax * 0.25;
+      if (words > maxWords) {
+        sales_mark = Math.min(sales_mark, halfMax * 0.5);
+        english_mark = halfMax * 0.25;
       }
     }
 
-    const total = Math.min(2, sales_mark + english_mark);
+    const total = Math.min(WRITING_MARKS_PER_QUESTION, Math.round((sales_mark + english_mark) * 2) / 2);
     sales_score += total;
     question_scores.push({
-      question_id: i,
+      question_id: index + 1,
+      bank_id: q.id,
       sales_mark,
       english_mark,
       total,
@@ -73,7 +83,7 @@ function fallbackGrade(salesAnswers) {
         ? 'Auto-graded in demo mode. Configure OPENAI_API_KEY for full LLM evaluation.'
         : 'No answer provided.',
     });
-  }
+  });
 
   return {
     question_scores,
@@ -84,14 +94,20 @@ function fallbackGrade(salesAnswers) {
 }
 
 /**
- * Evaluate Part 2 descriptive answers via LLM.
+ * Evaluate writing answers (up to 3 marks each).
+ * @param {Record<string,string>} salesAnswers keyed by slot q1..q5 or bank id
+ * @param {Array} writingQuestions assigned questions with slot + id
  */
-export async function evaluateSalesAnswers(salesAnswers) {
+export async function evaluateSalesAnswers(salesAnswers, writingQuestions = null) {
+  const questions = writingQuestions?.length
+    ? writingQuestions
+    : SALES_QUESTION_BANK.slice(0, 5).map((q, i) => ({ ...q, slot: `q${i + 1}` }));
+
   if (!openai) {
-    return fallbackGrade(salesAnswers);
+    return fallbackGrade(salesAnswers, questions);
   }
 
-  const userPrompt = buildSalesEvaluationUserPrompt(salesAnswers);
+  const userPrompt = buildSalesEvaluationUserPrompt(salesAnswers, questions);
 
   const response = await openai.chat.completions.create({
     model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
@@ -109,7 +125,7 @@ export async function evaluateSalesAnswers(salesAnswers) {
   }
 
   const parsed = JSON.parse(content);
-  const question_scores = normalizeQuestionScores(parsed.question_scores);
+  const question_scores = normalizeQuestionScores(parsed.question_scores, questions.length);
   const sales_score = Math.round(
     question_scores.reduce((sum, q) => sum + q.total, 0) * 2
   ) / 2;

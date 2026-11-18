@@ -41,9 +41,20 @@ describe('validateAssessmentSubmission', () => {
     const payload = validSubmissionPayload({
       sales_answers: {
         ...validSubmissionPayload().sales_answers,
-        q1: Array.from({ length: 60 }, (_, i) => `word${i}`).join(' '),
+        q1: Array.from({ length: 320 }, (_, i) => `word${i}`).join(' '),
       },
     });
-    assert.match(validateAssessmentSubmission(payload)[0], /Q1 exceeds the 50-word limit/i);
+    assert.match(validateAssessmentSubmission(payload)[0], /exceeds the 300-word limit/i);
+  });
+
+  it('rejects sales answers below the minimum word count', () => {
+    const payload = validSubmissionPayload({
+      sales_answers: {
+        ...validSubmissionPayload().sales_answers,
+        q1: 'Too short to pass the writing requirement.',
+      },
+    });
+    // Server allows short answers (demo/timer force-submit); client blocks intentional submit.
+    assert.deepEqual(validateAssessmentSubmission(payload), []);
   });
 });

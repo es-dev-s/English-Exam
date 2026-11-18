@@ -54,49 +54,57 @@ export default function CvUploadSection({ result, onUploaded }) {
   };
 
   return (
-    <div className="entegra-card p-4">
-      <h3 className="font-semibold text-slate-900 mb-2">Candidate CV</h3>
-      <p className="text-xs text-slate-500 mb-3">{ACCEPTED_LABEL}</p>
-
-      {hasCv ? (
-        <div className="flex flex-wrap items-center gap-3 mb-3">
-          <div className="flex items-center gap-2 text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-            <svg className="w-4 h-4 text-brand-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <span className="truncate max-w-[200px] sm:max-w-xs">{result.cv_original_name}</span>
+    <div className="entegra-card p-4 sm:p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1">
+            <h3 className="font-semibold text-slate-900">Candidate CV</h3>
+            <span className="text-xs text-slate-500">{ACCEPTED_LABEL}</span>
           </div>
+
+          {hasCv ? (
+            <div className="flex flex-wrap items-center gap-3 mt-2">
+              <div className="flex items-center gap-2 text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 min-w-0 max-w-full">
+                <svg className="w-4 h-4 text-brand-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="truncate">{result.cv_original_name}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={downloading}
+                className="entegra-btn-secondary text-sm py-1.5"
+              >
+                {downloading ? 'Downloading...' : 'Download CV'}
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500 mt-1">No CV uploaded yet.</p>
+          )}
+        </div>
+
+        <div className="shrink-0">
+          <input
+            ref={inputRef}
+            type="file"
+            accept={ACCEPTED_TYPES}
+            onChange={handleFileChange}
+            className="hidden"
+          />
           <button
             type="button"
-            onClick={handleDownload}
-            disabled={downloading}
-            className="entegra-btn-secondary text-sm py-1.5"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="entegra-btn-primary text-sm py-2 px-4 w-full sm:w-auto"
           >
-            {downloading ? 'Downloading...' : 'Download CV'}
+            {uploading ? 'Uploading...' : hasCv ? 'Replace CV' : 'Upload CV'}
           </button>
         </div>
-      ) : (
-        <p className="text-sm text-slate-500 mb-3">No CV uploaded yet.</p>
-      )}
+      </div>
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept={ACCEPTED_TYPES}
-        onChange={handleFileChange}
-        className="hidden"
-      />
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        className="entegra-btn-primary text-sm py-2 px-4"
-      >
-        {uploading ? 'Uploading...' : hasCv ? 'Replace CV' : 'Upload CV'}
-      </button>
-
-      {error && <p className="text-red-600 text-xs mt-2">{error}</p>}
-      {success && <p className="text-emerald-600 text-xs mt-2">{success}</p>}
+      {error && <p className="text-red-600 text-xs mt-3">{error}</p>}
+      {success && <p className="text-emerald-600 text-xs mt-3">{success}</p>}
     </div>
   );
 }
